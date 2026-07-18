@@ -1,71 +1,281 @@
+# =====================================================
+# Credit Scoring Model using German Credit Data
+# =====================================================
+
+# Step 1: Install Required Libraries
+!pip install pandas numpy matplotlib seaborn scikit-learn joblib
+
+# Step 2: Import Libraries
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+
+from google.colab import files
+
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
 
-df = pd.read_csv('credit_data.csv')  # Replace 'credit_data.csv' with your dataset
-
-print(df.head())
-
-print("Missing values in each column:")
-print(df.isnull().sum())
-
-df = df.dropna()  # Drop rows with missing values
-
-le = LabelEncoder()
-df['job_type'] = le.fit_transform(df['job_type'])
-df['credit_history'] = le.fit_transform(df['credit_history'])
-
-scaler = StandardScaler()
-df[['age', 'income']] = scaler.fit_transform(df[['age', 'income']])
-
-X = df.drop('target', axis=1)  # Features
-y = df['target']  # Target variable
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-
-lr = LogisticRegression()
-lr.fit(X_train, y_train)
-
-
-dt = DecisionTreeClassifier()
-dt.fit(X_train, y_train)
-
-
-svm = SVC(probability=True)
-svm.fit(X_train, y_train)
-
-
-
-y_pred_lr = lr.predict(X_test)
-print("\nLogistic Regression Classification Report:\n", classification_report(y_test, y_pred_lr))
-print("Logistic Regression AUC-ROC Score:", roc_auc_score(y_test, y_pred_lr))
-
-y_pred_dt = dt.predict(X_test)
-print("\nDecision Tree Classification Report:\n", classification_report(y_test, y_pred_dt))
-print("Decision Tree AUC-ROC Score:", roc_auc_score(y_test, y_pred_dt))
-
-
-y_pred_svm = svm.predict(X_test)
-print("\nSVM Classification Report:\n", classification_report(y_test, y_pred_svm))
-print("SVM AUC-ROC Score:", roc_auc_score(y_test, y_pred_svm))
-
-
-cm_lr = confusion_matrix(y_test, y_pred_lr)
-plt.figure(figsize=(5, 5))
-plt.matshow(cm_lr, cmap='Blues', fignum=1)
-plt.title('Confusion Matrix - Logistic Regression')
-plt.xlabel('Predicted')
-plt.ylabel('True')
-plt.colorbar()
-plt.show()
-
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    roc_auc_score
+)
 
 import joblib
-joblib.dump(lr, 'logistic_regression_model.pkl') 
+
+# =====================================================
+# Step 3: Upload Dataset
+# =====================================================
+
+uploaded = files.upload()
+
+# =====================================================
+# Step 4: Load Dataset
+# =====================================================
+
+df = pd.read_csv("german_credit_data.csv")
+
+# =====================================================
+# Step 5: Display Dataset
+# =====================================================
+
+print("First Five Rows")
+print(df.head())
+
+print("\nDataset Shape")
+print(df.shape)
+
+print("\nDataset Information")
+print(df.info())
+
+print("\nStatistical Summary")
+print(df.describe())
+
+# =====================================================
+# Step 6: Check Missing Values
+# =====================================================
+
+print("\nMissing Values")
+print(df.isnull().sum())
+
+# =====================================================
+# Step 7: Remove Unnecessary Column
+# =====================================================
+
+if "Unnamed: 0" in df.columns:
+    df.drop("Unnamed: 0", axis=1, inplace=True)
+
+# =====================================================
+# Step 8: Fill Missing Values
+# =====================================================
+
+df.fillna("Unknown", inplace=True)
+
+# =====================================================
+# Step 9: Encode Categorical Features
+# =====================================================
+
+label_encoder = LabelEncoder()
+
+for column in df.columns:
+    if df[column].dtype == "object":
+        df[column] = label_encoder.fit_transform(df[column])
+
+print("\nEncoded Dataset")
+print(df.head())
+
+# =====================================================
+# Step 10: Feature Scaling
+# =====================================================
+
+scaler = StandardScaler()
+
+numerical_columns = ["Age", "Credit amount", "Duration"]
+
+df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
+
+# =====================================================
+# Step 11: Features and Target
+# =====================================================
+
+X = df.drop("Risk", axis=1)
+
+y = df["Risk"]
+
+# =====================================================
+# Step 12: Split Dataset
+# =====================================================
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.30,
+    random_state=42
+)
+
+print("\nTraining Shape:", X_train.shape)
+print("Testing Shape:", X_test.shape)
+
+# =====================================================
+# Step 13: Logistic Regression
+# =====================================================
+
+lr = LogisticRegression(max_iter=1000)
+
+lr.fit(X_train, y_train)
+
+y_pred_lr = lr.predict(X_test)
+
+print("\n==============================")
+print("LOGISTIC REGRESSION")
+print("==============================")
+
+print("Accuracy :", accuracy_score(y_test, y_pred_lr))
+
+print("\nClassification Report")
+
+print(classification_report(y_test, y_pred_lr))
+
+print("ROC AUC Score :", roc_auc_score(y_test, y_pred_lr))
+
+# =====================================================
+# Step 14: Decision Tree
+# =====================================================
+
+dt = DecisionTreeClassifier(random_state=42)
+
+dt.fit(X_train, y_train)
+
+y_pred_dt = dt.predict(X_test)
+
+print("\n==============================")
+print("DECISION TREE")
+print("==============================")
+
+print("Accuracy :", accuracy_score(y_test, y_pred_dt))
+
+print("\nClassification Report")
+
+print(classification_report(y_test, y_pred_dt))
+
+print("ROC AUC Score :", roc_auc_score(y_test, y_pred_dt))
+
+# =====================================================
+# Step 15: Support Vector Machine
+# =====================================================
+
+svm = SVC(probability=True)
+
+svm.fit(X_train, y_train)
+
+y_pred_svm = svm.predict(X_test)
+
+print("\n==============================")
+print("SUPPORT VECTOR MACHINE")
+print("==============================")
+
+print("Accuracy :", accuracy_score(y_test, y_pred_svm))
+
+print("\nClassification Report")
+
+print(classification_report(y_test, y_pred_svm))
+
+print("ROC AUC Score :", roc_auc_score(y_test, y_pred_svm))
+
+# =====================================================
+# Step 16: Confusion Matrix
+# =====================================================
+
+cm = confusion_matrix(y_test, y_pred_lr)
+
+plt.figure(figsize=(6,5))
+
+sns.heatmap(
+    cm,
+    annot=True,
+    cmap="Blues",
+    fmt="d"
+)
+
+plt.title("Confusion Matrix - Logistic Regression")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+
+plt.show()
+
+# =====================================================
+# Step 17: Model Comparison
+# =====================================================
+
+results = pd.DataFrame({
+
+    "Model":[
+        "Logistic Regression",
+        "Decision Tree",
+        "Support Vector Machine"
+    ],
+
+    "Accuracy":[
+        accuracy_score(y_test, y_pred_lr),
+        accuracy_score(y_test, y_pred_dt),
+        accuracy_score(y_test, y_pred_svm)
+    ]
+
+})
+
+print("\nModel Comparison")
+
+print(results)
+
+# =====================================================
+# Step 18: Accuracy Comparison Graph
+# =====================================================
+
+plt.figure(figsize=(8,5))
+
+plt.bar(results["Model"], results["Accuracy"])
+
+plt.title("Model Accuracy Comparison")
+
+plt.xlabel("Machine Learning Models")
+
+plt.ylabel("Accuracy")
+
+plt.show()
+
+# =====================================================
+# Step 19: Save Model
+# =====================================================
+
+joblib.dump(lr, "credit_scoring_model.pkl")
+
+print("\nLogistic Regression model saved successfully!")
+
+# =====================================================
+# Step 20: Load Saved Model
+# =====================================================
+
+loaded_model = joblib.load("credit_scoring_model.pkl")
+
+print("\nSaved model loaded successfully!")
+
+# =====================================================
+# Step 21: Predict New Customer
+# =====================================================
+
+sample_customer = X.iloc[[0]]
+
+prediction = loaded_model.predict(sample_customer)
+
+print("\nPrediction for Sample Customer:")
+
+if prediction[0] == 1:
+    print("High Credit Risk")
+else:
+    print("Low Credit Risk")
